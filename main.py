@@ -43,6 +43,10 @@ def get_embedding(text: str):
     print(f"✅ 임베딩 변환 완료!")  # 완료 로그
     return response
 
+@app.get("/")
+def home():
+    return {"message": "FastAPI is running on Render! 🚀"}
+
 
 @app.post("/search")
 def search_vectors(request: SearchRequest):
