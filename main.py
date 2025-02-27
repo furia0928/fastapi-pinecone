@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from langchain_openai import OpenAIEmbeddings
 from pinecone import Pinecone
@@ -23,6 +24,7 @@ index = pc.Index(INDEX_NAME)
 
 # 📌 FastAPI 앱 생성
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 📌 요청 모델 정의
 class SearchRequest(BaseModel):
