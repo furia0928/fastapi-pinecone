@@ -1,0 +1,98 @@
+openapi: 3.1.0
+info:
+  title: Pinecone Vector Search API
+  version: "1.0.0"
+  description: >
+    The vector database stores the official API documentation for both LangChain and LangGraph.
+    When a user asks questions related to LangChain or LangGraph, this vector database is utilized
+    to provide relevant and accurate official API information.
+    Internally, the "search_vectors" function is used to perform the vector search.
+
+    📌 Last Indexed Date: 2024-02-28
+    (This date represents the most recent collection of API documentation in the vector database.)
+servers:
+  - url: https://fastapi-pinecone.onrender.com
+paths:
+  /search:
+    post:
+      operationId: search_vectors
+      summary: Execute vector search
+      description: >
+        Converts a text query into an embedding, performs a vector search within a specified namespace,
+        and returns up to **20** matching vectors with their ID, score, and metadata.
+        If there are fewer than 20 relevant results, it will return only the available matches.
+        The search is performed on the vector database containing the official APIs for LangChain and LangGraph.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Successful search response with up to 20 matching vectors.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Bad request due to missing fields or embedding conversion failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error during processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    SearchRequest:
+      type: object
+      description: >
+        Request schema for vector search. Contains:
+        - **query**: Text query for embedding (must be in English only).
+        - **namespace**: Namespace to search within.
+      properties:
+        query:
+          type: string
+          description: The text query to convert into an embedding (must be in English only).
+        namespace:
+          type: string
+          enum:
+            - langchain_api
+          description: Namespace to perform the search.
+      required:
+        - query
+        - namespace
+    SearchResponse:
+      type: object
+      description: >
+        Response schema for vector search, returning **up to 20** matches.
+      properties:
+        matches:
+          type: array
+          description: List of matching vector results (up to 20 results).
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Unique identifier of the matched vector.
+              score:
+                type: number
+                format: float
+                description: Similarity score of the match.
+              metadata:
+                type: object
+                additionalProperties: true
+                description: Additional metadata.
+    ErrorResponse:
+      type: object
+      description: Error response schema with details.
+      properties:
+        detail:
+          type: string
+          description: Detailed error message.

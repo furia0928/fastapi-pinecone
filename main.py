@@ -30,7 +30,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # 📌 요청 모델 정의
 class SearchRequest(BaseModel):
     query: str
-    top_k: int = 5  # 반환할 최대 개수
+    top_k: int = 20  # 반환할 최대 개수
     namespace: Literal["langchain_api", "langgraph_api"]
 
 # 📌 OpenAI 임베딩 함수 (LangChain 사용)
