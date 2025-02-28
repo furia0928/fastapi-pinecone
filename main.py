@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from typing import Literal
 from langchain_openai import OpenAIEmbeddings
 from pinecone import Pinecone
 import os
@@ -30,6 +31,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class SearchRequest(BaseModel):
     query: str
     top_k: int = 5  # 반환할 최대 개수
+    namespace: Literal["langchain_api", "langgraph_api"]
 
 # 📌 OpenAI 임베딩 함수 (LangChain 사용)
 def get_embedding(text: str):
@@ -49,10 +51,9 @@ def get_embedding(text: str):
 def home():
     return {"message": "FastAPI is running on Render! 🚀"}
 
-
 @app.post("/search")
 def search_vectors(request: SearchRequest):
-    print(f"📌 검색 요청: {request.query}")  # 검색 요청 로그
+    print(f"📌 검색 요청: {request.query}, 네임스페이스: {request.namespace}")  # 검색 요청 로그
 
     try:
         query_embedding = get_embedding(request.query)
@@ -60,25 +61,24 @@ def search_vectors(request: SearchRequest):
         if query_embedding is None:
             raise HTTPException(status_code=400, detail="🚨 임베딩 변환 실패")
 
-        # 📌 Pinecone 검색 수행
-        print(f"📌 Pinecone 검색 시작 (namespace: langchain, top_k: {request.top_k})")
+        # 📌 Pinecone 검색 수행 (요청에서 받은 네임스페이스 사용)
+        print(f"📌 Pinecone 검색 시작 (namespace: {request.namespace}, top_k: {request.top_k})")
 
         results = index.query(
             vector=query_embedding,
             top_k=request.top_k,
-            namespace="langchain",  # 저장된 네임스페이스와 일치
+            namespace=request.namespace,
             include_metadata=True
         )
 
         print(f"✅ 검색 완료! 결과 개수: {len(results.get('matches', []))}")
         print(f"📌 검색 결과: {results}")  # 전체 검색 결과 출력
 
-        # 🚀 **예외 방지 코드 추가**
         if not results or "matches" not in results:
             print("🚨 Pinecone 검색 결과가 없음! 빈 리스트 반환")
-            return {"matches": []}  # 빈 결과 반환
+            return {"matches": []}
 
-        # **🚨 중요: FastAPI가 JSON으로 변환할 수 있도록 데이터 정리**
+        # FastAPI가 JSON으로 변환할 수 있도록 데이터 정리
         response = {"matches": []}
         for match in results["matches"]:
             response["matches"].append({
@@ -87,11 +87,8 @@ def search_vectors(request: SearchRequest):
                 "metadata": match.get("metadata", {})
             })
 
-        return response  # ✅ FastAPI가 처리할 수 있도록 변환된 데이터 반환
+        return response
 
     except Exception as e:
         print(f"🚨 FastAPI 오류 발생: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-
